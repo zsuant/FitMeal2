@@ -8,7 +8,6 @@ class FoodAPI {
     static let shared = FoodAPI() // Singleton 인스턴스
     private var cancellable: AnyCancellable?
 
-    // 카테고리 데이터
     static let categories: [(code: String, name: String)] = [
         ("01", "밥류"), ("02", "빵 및 과자류"), ("03", "면 및 만두류"),
         ("04", "죽 및 스프류"), ("05", "국 및 탕류"), ("06", "찌개 및 전골류"),
@@ -17,8 +16,10 @@ class FoodAPI {
         ("13", "나물숙채류"), ("14", "생채무침류"), ("15", "김치류"),
         ("16", "젓갈류"), ("17", "장아찌 절임류"), ("18", "소스류"),
         ("19", "유제품 및 빙과류"), ("20", "음료 및 차류"),
-        ("24", "곡류 서류 제품"), ("25", "두류 견과 및 종실류"), ("27", "수조어육류")
+        ("24", "곡류 서류 제품"), ("25", "두류 견과 및 종실류"), ("27", "수조어육류"),
+        ("custom", "나만의 식단")  // 사용자 정의 카테고리 추가
     ]
+
 
     static func fetchFoodNutritionalInfo(for category: String, completion: @escaping (Result<[FoodItem], Error>) -> Void) {
         let apiKey = "8zxlS7roLbWluRaSyKAOX46tEMOEQQMAfY3sfDjIC2uGJv40SrUTfEnQEq55eUVOcelukk5pRNb0RCqMD5nCiw%3D%3D"

@@ -14,92 +14,118 @@ struct MyPageView: View {
     @State private var isEditingHeight = false
     @State private var isEditingWeight = false
     @State private var isEditingAge = false
-
+    
     var body: some View {
         NavigationView {
-            VStack {
-                VStack {
-                    if let profileImage = profileImage {
-                        profileImage
-                            .resizable()
-                            .scaledToFill()
-                            .frame(width: 100, height: 100)
-                            .clipShape(Circle())
-                            .onTapGesture {
-                                showingImagePicker = true
-                            }
-                    } else {
-                        Button(action: {
-                            showingImagePicker = true
-                        }) {
-                            ZStack {
-                                Circle()
-                                    .fill(Color.gray.opacity(0.3))
-                                    .frame(width: 100, height: 100)
-                                Image(systemName: "camera")
-                                    .resizable()
-                                    .scaledToFit()
-                                    .frame(width: 40, height: 40)
-                                    .foregroundColor(.white)
-                            }
-                        }
-                    }
+            ScrollView {
+                VStack(spacing: 20) {
+                    // Profile Image Section
+                    profileImageSection
                     
-                    // 닉네임 입력
-                    HStack {
-                        if isEditingNickname {
-                            TextField("닉네임 입력", text: $nickname, onCommit: {
-                                updateUserProfile()
-                                isEditingNickname = false
-                            })
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
-                            .font(.largeTitle)
-                            .padding()
-                        } else {
-                            Text(nickname)
-                                .font(.largeTitle)
-                                .padding(.top, 8)
-                            Button(action: {
-                                isEditingNickname = true
-                            }) {
-                                Image(systemName: "pencil")
-                                    .foregroundColor(.blue)
-                            }
-                        }
-                    }
-
-                    // 키, 몸무게, 나이 입력 필드
-                    VStack(spacing: 16) {
-                        InputField(title: "키 (cm)", value: $height, isEditing: $isEditingHeight)
-                        InputField(title: "몸무게 (kg)", value: $weight, isEditing: $isEditingWeight)
-                        InputField(title: "나이", value: $age, isEditing: $isEditingAge)
-                    }
-                    .padding()
-
-                    // 권장 칼로리 및 영양 성분 표시
+                    // Nickname Section
+                    editableFieldSection(title: "닉네임", value: $nickname, isEditing: $isEditingNickname)
+                    
+                    // Height, Weight, Age Sections
+                    editableFieldSection(title: "키 (cm)", value: $height, isEditing: $isEditingHeight)
+                    editableFieldSection(title: "몸무게 (kg)", value: $weight, isEditing: $isEditingWeight)
+                    editableFieldSection(title: "나이", value: $age, isEditing: $isEditingAge)
+                    
+                    // Recommended Calorie Calculation
                     if let recommendedCalories = calculateCalories() {
                         Text("권장 칼로리: \(recommendedCalories) kcal")
                             .font(.headline)
+                            .padding(.top, 10)
+                    }
+                    
+                    // Change Password Button
+                    NavigationLink(destination: ChangePasswordView()) {
+                        Text("비밀번호 변경")
+                            .frame(maxWidth: .infinity)
                             .padding()
+                            .background(Color.blue)
+                            .foregroundColor(.white)
+                            .cornerRadius(10)
+                            .padding(.horizontal)
                     }
                 }
                 .padding()
-
-                NavigationLink(destination: ChangePasswordView()) {
-                    Text("비밀번호 변경")
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.blue)
-                        .foregroundColor(.white)
-                        .cornerRadius(10)
-                        .padding(.horizontal)
-                }
             }
-            .navigationTitle("내 페이지") // 네비게이션 타이틀 추가
+            .navigationTitle("내 페이지")
             .sheet(isPresented: $showingImagePicker) {
                 ImagePicker(image: $profileImage)
             }
+            .onTapGesture {
+                hideKeyboard()
+            }
         }
+    }
+    
+    private var profileImageSection: some View {
+        VStack {
+            if let profileImage = profileImage {
+                profileImage
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 120, height: 120)
+                    .clipShape(Circle())
+                    .overlay(Circle().stroke(Color.blue, lineWidth: 4))
+                    .shadow(radius: 10)
+                    .onTapGesture {
+                        showingImagePicker = true
+                    }
+            } else {
+                Button(action: {
+                    showingImagePicker = true
+                }) {
+                    ZStack {
+                        Circle()
+                            .fill(Color.gray.opacity(0.3))
+                            .frame(width: 120, height: 120)
+                        Image(systemName: "camera")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 40, height: 40)
+                            .foregroundColor(.white)
+                    }
+                    .overlay(Circle().stroke(Color.blue, lineWidth: 4))
+                    .shadow(radius: 10)
+                }
+            }
+        }
+    }
+
+    private func editableFieldSection(title: String, value: Binding<String>, isEditing: Binding<Bool>) -> some View {
+        VStack {
+            HStack {
+                Text(title)
+                    .font(.headline)
+                    .foregroundColor(.gray)
+                Spacer()
+                if isEditing.wrappedValue {
+                    TextField(title, text: value, onCommit: {
+                        isEditing.wrappedValue = false
+                        updateUserProfile()
+                    })
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .padding(.vertical, 8)
+                    .frame(width: 200)
+                } else {
+                    Text(value.wrappedValue.isEmpty ? "입력 안함" : value.wrappedValue)
+                        .foregroundColor(value.wrappedValue.isEmpty ? .gray : .primary)
+                        .font(.body)
+                        .frame(width: 200)
+                    Button(action: {
+                        isEditing.wrappedValue = true
+                    }) {
+                        Image(systemName: "pencil")
+                            .foregroundColor(.blue)
+                            .padding(.leading, 8)
+                    }
+                }
+            }
+            Divider()
+        }
+        .padding(.horizontal)
     }
 
     private func updateUserProfile() {
@@ -112,14 +138,13 @@ struct MyPageView: View {
             "weight": weight,
             "age": age
         ]
-
-        // 프로필 이미지가 선택된 경우에만 업로드
+        
+        // Profile Image upload
         if let profileImage = profileImage {
             uploadImageToStorage(profileImage) { imageURL in
                 if let imageURL = imageURL {
                     userData["profileImageURL"] = imageURL
                 }
-                // Firestore 업데이트
                 db.collection("users").document(userID).setData(userData, merge: true) { error in
                     if let error = error {
                         print("Error updating user profile: \(error.localizedDescription)")
@@ -129,7 +154,6 @@ struct MyPageView: View {
                 }
             }
         } else {
-            // 프로필 이미지가 없을 때 닉네임만 업데이트
             db.collection("users").document(userID).setData(userData, merge: true) { error in
                 if let error = error {
                     print("Error updating user profile: \(error.localizedDescription)")
@@ -144,10 +168,9 @@ struct MyPageView: View {
         guard let height = Double(height),
               let weight = Double(weight),
               let age = Int(age) else { return nil }
-
-        // 간단한 BMR 계산 (Mifflin-St Jeor 식)
-        let bmr = 10 * weight + 6.25 * height - 5 * Double(age) + 5 // 남성 기준
-        return Int(bmr * 1.55) // 활동 계수 1.55 (중간 활동)
+        
+        let bmr = 10 * weight + 6.25 * height - 5 * Double(age) + 5
+        return Int(bmr * 1.55) // Moderate activity factor
     }
 
     private func uploadImageToStorage(_ image: Image, completion: @escaping (String?) -> Void) {
@@ -177,40 +200,14 @@ struct MyPageView: View {
             }
         }
     }
-}
 
-// 입력 필드 뷰
-struct InputField: View {
-    var title: String
-    @Binding var value: String
-    @Binding var isEditing: Bool
-
-    var body: some View {
-        HStack {
-            if isEditing {
-                TextField(title, text: $value, onCommit: {
-                    isEditing = false
-                })
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-                .keyboardType(.numberPad)
-                .padding()
-            } else {
-                Text(value.isEmpty ? "\(title): 입력 안함" : "\(title): \(value)")
-                    .padding(.top, 8)
-                Button(action: {
-                    isEditing = true
-                }) {
-                    Image(systemName: "pencil")
-                        .foregroundColor(.blue)
-                }
-            }
-        }
+    private func hideKeyboard() {
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
     }
 }
-
-// 비밀번호 변경 뷰
 struct ChangePasswordView: View {
     @State private var password: String = ""
+    @State private var showAlert = false // State to control alert visibility
     
     var body: some View {
         Form {
@@ -233,6 +230,9 @@ struct ChangePasswordView: View {
             }
         }
         .navigationTitle("비밀번호 변경")
+        .alert(isPresented: $showAlert) {
+            Alert(title: Text("비밀번호 변경"), message: Text("비밀번호가 변경되었습니다."), dismissButton: .default(Text("확인")))
+        }
     }
     
     private func changePassword() {
@@ -242,10 +242,14 @@ struct ChangePasswordView: View {
                 print("Error updating password: \(error.localizedDescription)")
             } else {
                 print("Password successfully updated!")
+                showAlert = true // Show the alert upon success
             }
         }
     }
 }
+
+
+
 
 // 이미지 선택기 구현
 struct ImagePicker: UIViewControllerRepresentable {

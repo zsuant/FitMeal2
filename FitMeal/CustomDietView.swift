@@ -13,6 +13,12 @@ struct CustomDietView: View {
     @State private var meals: [(String, [String: Double])] = []
     @State private var totalNutrients: [String: Double] = [:]
     
+    // 나만의 식단 저장
+    @State private var customDietFoods: [FoodItem] = []
+    
+    // New state for showing success message
+    @State private var isDietAdded: Bool = false
+    
     var body: some View {
         NavigationView {
             VStack {
@@ -29,6 +35,16 @@ struct CustomDietView: View {
                     }
                     
                     addedMealsSummary
+                    
+                    // Show success message when diet is added
+                    if isDietAdded {
+                        Text("식단이 추가되었습니다!")
+                            .font(.headline)
+                            .foregroundColor(.green)
+                            .padding()
+                            .transition(.opacity)
+                            .animation(.easeInOut, value: isDietAdded)
+                    }
                 }
             }
             .navigationTitle("나만의 식단 만들기")
@@ -82,7 +98,7 @@ struct CustomDietView: View {
                             .padding(.horizontal, 12)
                             .padding(.vertical, 8)
                             .background(selectedCategory == category.code ? Color.blue : Color.gray.opacity(0.2))
-                            .foregroundColor(.white) // Always white text
+                            .foregroundColor(.white)
                             .cornerRadius(15)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 15)
@@ -94,8 +110,6 @@ struct CustomDietView: View {
             .padding(.horizontal, 16)
         }
     }
-
-
     
     private var foodResultsList: some View {
         List(foodResults, id: \.foodName) { item in
@@ -111,41 +125,76 @@ struct CustomDietView: View {
             Text("\(dietName) - 추가된 음식 목록")
                 .font(.headline)
                 .padding(.top)
+                .padding(.leading, 10)
+                .frame(maxWidth: .infinity, alignment: .leading)
             
-            ForEach(meals, id: \.0) { foodName, nutrients in
-                HStack {
-                    Text(foodName)
-                        .font(.subheadline)
-                        .lineLimit(1)
-                    Spacer()
-                    Text("\(nutrients["칼로리"] ?? 0, specifier: "%.2f") kcal")
-                        .font(.subheadline)
-                        .foregroundColor(.gray)
-                }
-            }
-            
-            if !totalNutrients.isEmpty {
-                Text("총 영양성분")
-                    .font(.headline)
-                    .padding(.top, 5)
-                
-                VStack(alignment: .leading, spacing: 5) {
-                    ForEach(totalNutrients.keys.sorted(), id: \.self) { nutrient in
+            ScrollView(.vertical, showsIndicators: true) {
+                VStack(alignment: .leading, spacing: 10) {
+                    ForEach(meals, id: \.0) { foodName, nutrients in
                         HStack {
-                            Text("\(nutrient):")
+                            Text(foodName)
+                                .font(.subheadline)
+                                .lineLimit(1)
+                            Spacer()
+                            Text("\(nutrients["칼로리"] ?? 0, specifier: "%.2f") kcal")
                                 .font(.subheadline)
                                 .foregroundColor(.gray)
-                            Spacer()
-                            Text("\(totalNutrients[nutrient] ?? 0, specifier: "%.2f")")
-                                .font(.subheadline)
+                        }
+                        .padding(.horizontal)
+                    }
+                    
+                    if !totalNutrients.isEmpty {
+                        Divider()
+                            .padding(.horizontal)
+                        
+                        Text("총 영양성분")
+                            .font(.headline)
+                            .padding(.top, 5)
+                            .padding(.horizontal)
+                        
+                        VStack(alignment: .leading, spacing: 5) {
+                            ForEach(totalNutrients.keys.sorted(), id: \.self) { nutrient in
+                                HStack {
+                                    Text("\(nutrient):")
+                                        .font(.subheadline)
+                                        .foregroundColor(.gray)
+                                    Spacer()
+                                    Text("\(totalNutrients[nutrient] ?? 0, specifier: "%.2f")")
+                                        .font(.subheadline)
+                                }
+                                .padding(.horizontal)
+                            }
                         }
                     }
                 }
                 .padding(.vertical, 5)
             }
         }
-        .padding()
+        .padding(.vertical)
         .background(RoundedRectangle(cornerRadius: 10).fill(Color(.systemGray6)))
+        .frame(maxWidth: .infinity, maxHeight: 300)
+        .padding(.horizontal)
+        .overlay(
+            HStack {
+                Spacer()
+                VStack {
+                    Spacer()
+                    Button(action: {
+                        saveCustomDiet()
+                    }) {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.title)
+                            .foregroundColor(.white)
+                            .padding()
+                            .background(Color.green)
+                            .clipShape(Circle())
+                            .shadow(radius: 5)
+                    }
+                    .padding(.trailing, 10)
+                    .padding(.bottom, 10)
+                }
+            }
+        )
     }
     
     // MARK: - Functions
@@ -190,6 +239,27 @@ struct CustomDietView: View {
         for (nutrient, value) in nutrients {
             totalNutrients[nutrient, default: 0] += value
         }
-        print("Added \(foodName) with nutrients: \(nutrients)")
+    }
+    
+    private func saveCustomDiet() {
+        customDietFoods = meals.map {
+            FoodItem(
+                foodName: $0.0,
+                calories: $0.1["칼로리"] ?? 0,
+                carbs: $0.1["탄수화물"] ?? 0,
+                protein: $0.1["단백질"] ?? 0,
+                fat: $0.1["지방"] ?? 0,
+                saturatedFat: $0.1["포화지방"] ?? 0,
+                sodium: $0.1["나트륨"] ?? 0,
+                sugar: $0.1["당"] ?? 0
+            )
+        }
+        print("나만의 식단이 저장되었습니다: \(customDietFoods)")
+        
+        // Show success message and hide it after 2 seconds
+        isDietAdded = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            isDietAdded = false
+        }
     }
 }

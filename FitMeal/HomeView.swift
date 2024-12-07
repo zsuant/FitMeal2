@@ -1,60 +1,56 @@
-//
-//  HomeView.swift
-//  FitMeal
-//
-//  Created by 이수겸 on 10/1/24.
-//
-
-
 import SwiftUI
 
 struct HomeView: View {
     var body: some View {
         NavigationView {
-            let columns = [
-                GridItem(.flexible()),
-                GridItem(.flexible())
-            ]
-            
-            LazyVGrid(columns: columns, spacing: 20) {
-                NavigationLink(destination: MeasureFoodView()) {
-                    Text("식단 추가")
-                        .frame(width: 150, height: 150)
-                        .background(Color.blue)
-                        .foregroundColor(.white)
-                        .cornerRadius(20)
-                        .font(.headline)
+            ScrollView {
+                VStack(spacing: 20) {
+                    Text("FitMeal")
+                        .font(.largeTitle)
+                        .fontWeight(.bold)
+                        .foregroundColor(.primary)
+                        .padding(.top, 40)
+                    
+                    HomeGridItem(title: "식단 추가", color: .blue, destination: MeasureFoodView(), icon: "plus.circle")
+                    
+                    HomeGridItem(title: "식단 확인", color: .green, destination: TodayIntakeView(), icon: "list.bullet")
+                    
+                    HomeGridItem(title: "나만의 식단 만들기", color: .orange, destination: CustomDietView(), icon: "star.fill")
+                    
+                    HomeGridItem(title: "영양성분 검색", color: .purple, destination: FoodNutritionalInfoView(), icon: "magnifyingglass")
                 }
+                .padding(.horizontal)
+                .navigationTitle("홈")
+            }
+        }
+    }
+}
+
+struct HomeGridItem<Destination: View>: View {
+    let title: String
+    let color: Color
+    let destination: Destination
+    let icon: String
+    
+    var body: some View {
+        NavigationLink(destination: destination) {
+            HStack(spacing: 15) {
+                Image(systemName: icon)
+                    .font(.system(size: 40))
+                    .foregroundColor(.white)
                 
-                NavigationLink(destination: TodayIntakeView()) {
-                    Text("식단 확인")
-                        .frame(width: 150, height: 150)
-                        .background(Color.green)
-                        .foregroundColor(.white)
-                        .cornerRadius(20)
-                        .font(.headline)
-                }
+                Text(title)
+                    .font(.headline)
+                    .foregroundColor(.white)
+                    .fontWeight(.semibold)
                 
-                NavigationLink(destination: CustomDietView()) {
-                    Text("나만의 식단 만들기")
-                        .frame(width: 150, height: 150)
-                        .background(Color.orange)
-                        .foregroundColor(.white)
-                        .cornerRadius(20)
-                        .font(.headline)
-                }
-                
-                NavigationLink(destination: FoodNutritionalInfoView()) {
-                    Text("영양성분 검색")
-                        .frame(width: 150, height: 150)
-                        .background(Color.purple)
-                        .foregroundColor(.white)
-                        .cornerRadius(20)
-                        .font(.headline)
-                }
+                Spacer()
             }
             .padding()
-            .navigationTitle("Home")
+            .frame(height: 80)
+            .background(color)
+            .cornerRadius(15)
+            .shadow(color: color.opacity(0.4), radius: 8, x: 0, y: 4)
         }
     }
 }

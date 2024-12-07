@@ -6,10 +6,15 @@ struct MeasureFoodView: View {
     @State private var selectedCategory: String = "01"
     @State private var isLoading: Bool = false
     @State private var cachedResults: [String: [FoodItem]] = [:]
+    @State private var customFoods: [FoodItem] = [
+        FoodItem(foodName: "식단1", calories: 227.5, carbs: 30, protein: 15, fat: 10, saturatedFat: 3, sodium: 200, sugar: 5)
+    ]
 
-    // Store meals by date and meal type
+
+    @State private var favoriteItems: Set<String> = [] // 즐겨찾기된 음식 이름 저장
+
     @State private var meals: [String: [String: [(String, [String: Double])]]] = [:]
-    @State private var selectedMealType: String = "아침" // Default selected meal type
+    @State private var selectedMealType: String = "아침"
     private let mealTypes = ["아침", "점심", "저녁"]
 
     var body: some View {
@@ -28,7 +33,7 @@ struct MeasureFoodView: View {
                 }
             }
             .navigationTitle("영양성분 측정")
-            .navigationBarBackButtonHidden(true) // Hide default back button
+            .navigationBarBackButtonHidden(true)
             .padding(.bottom, 10)
             .onAppear {
                 setDefaultMealTypeBasedOnTime()
@@ -64,7 +69,11 @@ struct MeasureFoodView: View {
                 ForEach(FoodAPI.categories, id: \.code) { category in
                     Button(action: {
                         selectedCategory = category.code
-                        if let cached = cachedResults[category.code] {
+                        if category.code == "custom" {
+                            foodResults = customFoods
+                            // '나만의 식단' 카테고리 선택 시 바로 식단에 추가
+                            addCustomFoodsToMeal()
+                        } else if let cached = cachedResults[category.code] {
                             foodResults = cached
                         } else {
                             fetchFoodNutritionalInfo()
@@ -75,13 +84,14 @@ struct MeasureFoodView: View {
                             .padding(.horizontal, 12)
                             .padding(.vertical, 8)
                             .background(selectedCategory == category.code ? Color.blue : Color.gray.opacity(0.2))
-                            .foregroundColor(.white) // Always white text
+                            .foregroundColor(.white)
                             .cornerRadius(15)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 15)
                                     .stroke(selectedCategory == category.code ? Color.blue : Color.gray, lineWidth: 1)
                             )
                     }
+
                 }
             }
             .padding(.horizontal, 16)
@@ -89,12 +99,35 @@ struct MeasureFoodView: View {
     }
 
     private var foodResultsList: some View {
-        List(foodResults, id: \.foodName) { item in
-            NavigationLink(destination: WeightInputView(item: item, onAddToMeal: addToMeal)) {
-                FoodItemView(item: item)
+        List {
+            ForEach(sortedFoodResults, id: \.foodName) { item in
+                HStack {
+                    // NavigationLink는 텍스트와 아이콘을 감싸도록 수정
+                    NavigationLink(destination: WeightInputView(item: item, onAddToMeal: addToMeal)) {
+                        FoodItemView(item: item)
+                    }
+                    Spacer()
+                    // 독립된 즐겨찾기 버튼
+                    Button(action: {
+                        toggleFavorite(for: item)
+                    }) {
+                        Image(systemName: favoriteItems.contains(item.foodName) ? "star.fill" : "star")
+                            .foregroundColor(favoriteItems.contains(item.foodName) ? .yellow : .gray)
+                    }
+                    .buttonStyle(PlainButtonStyle()) // 버튼 스타일로 인해 링크처럼 보이지 않도록 설정
+                }
             }
         }
         .listStyle(PlainListStyle())
+    }
+
+
+    // MARK: - Computed Properties
+
+    private var sortedFoodResults: [FoodItem] {
+        let favorites = foodResults.filter { favoriteItems.contains($0.foodName) }
+        let nonFavorites = foodResults.filter { !favoriteItems.contains($0.foodName) }
+        return favorites + nonFavorites
     }
 
     // MARK: - Functions
@@ -103,11 +136,11 @@ struct MeasureFoodView: View {
         let hour = Calendar.current.component(.hour, from: Date())
         switch hour {
         case 6..<11:
-            selectedMealType = "아침" // Morning
+            selectedMealType = "아침"
         case 11..<17:
-            selectedMealType = "점심" // Lunch
+            selectedMealType = "점심"
         default:
-            selectedMealType = "저녁" // Dinner
+            selectedMealType = "저녁"
         }
     }
 
@@ -145,13 +178,33 @@ struct MeasureFoodView: View {
         }
     }
 
+    private func toggleFavorite(for item: FoodItem) {
+        if favoriteItems.contains(item.foodName) {
+            favoriteItems.remove(item.foodName)
+        } else {
+            favoriteItems.insert(item.foodName)
+        }
+    }
+
     private func addToMeal(foodName: String, nutrients: [String: Double]) {
-        // Ensure that meals[selectedMealType] exists, otherwise create it as an empty dictionary
         if meals[selectedMealType] == nil {
             meals[selectedMealType] = [:]
         }
-        
-        // Append the food name and nutrients tuple to the dictionary
         meals[selectedMealType]?[foodName, default: []].append((foodName, nutrients))
+    }
+
+    private func addCustomFoodsToMeal() {
+        // '나만의 식단' 카테고리가 선택되었을 때 바로 customFoods를 식단에 추가
+        for food in customFoods {
+            addToMeal(foodName: food.foodName, nutrients: [
+                "calories": food.calories,
+                "carbs": food.carbs,
+                "protein": food.protein,
+                "fat": food.fat,
+                "saturatedFat": food.saturatedFat,
+                "sodium": food.sodium,
+                "sugar": food.sugar
+            ])
+        }
     }
 }
