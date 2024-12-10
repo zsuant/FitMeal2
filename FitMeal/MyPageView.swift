@@ -50,7 +50,7 @@ struct MyPageView: View {
                 }
                 .padding()
             }
-            .navigationTitle("내 페이지")
+            .navigationTitle("마이 페이지")
             .sheet(isPresented: $showingImagePicker) {
                 ImagePicker(image: $profileImage)
             }
